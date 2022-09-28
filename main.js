@@ -30,7 +30,7 @@ function getPlatform(platform){
 };
 var platform = getPlatform(os.platform())
 if (platform == 'mac'){
-console.log('what',__dirname.substring(__dirname.lastIndexOf('/')))
+
 if(__dirname.substring(__dirname.lastIndexOf('/')) == '/app.asar'){
   var execPath = path.join(__dirname.substring(0, __dirname.lastIndexOf('/')), 'bin','ffmpeg' );
 }else{
@@ -38,7 +38,7 @@ if(__dirname.substring(__dirname.lastIndexOf('/')) == '/app.asar'){
 }}
 
 if (platform == 'win'){
-console.log('what',__dirname.substring(__dirname.lastIndexOf('\\')))
+
 if(__dirname.substring(__dirname.lastIndexOf('\\')) == '\\app.asar'){
   var execPath = path.join(__dirname.substring(0, __dirname.lastIndexOf('\\')), 'bin','ffmpeg' );
 }else{
@@ -89,7 +89,6 @@ const io = new soc.Server(httpServer, {
 });
 
 io.on("connection", (socket) => {
-console.log(`connect ${socket.id}`);
 var downpath = os.homedir()+'/Downloads/'
 var stream
 var pt
