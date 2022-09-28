@@ -1,0 +1,74 @@
+{
+  "name": "renderapp",
+  "version": "0.0.1",
+  "description": "App which does rendering for Sound to Vision",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "electron .",
+    "app:dir": "electron-builder --dir",
+    "app:dist": "electron-builder -mwl --publish always"
+  },
+  "author": "Dominic Waithe",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^20.2.0",
+    "electron-builder": "^23.3.3"
+  },
+  "dependencies": {
+    "app-root-dir": "^1.0.2",
+    "electron-updater": "^5.2.1",
+    "express": "^4.18.1",
+    "fluent-ffmpeg": "^2.1.2",
+    "socket.io": "^4.5.1",
+    "yarn": "^1.22.19"
+  },
+  "build": {
+    "appId": "soundtovision.renderapp",
+    "mac": {
+      "category": "public.app-category.video",
+      "extendInfo": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLName": "soundtovision.renderapp",
+            "CFBundleURLSchemes": [
+              "soundtovision"
+            ]
+          }
+        ]
+      },
+      "icon": "build/icon.png"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "protocols": {
+      "name": "soundtovision-renderapp",
+      "schemes": [
+        "soundtovision"
+      ]
+    },
+    "extraFiles": [
+      {
+        "from": "resources/${os}",
+        "to": "Resources/bin",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "repository": {
+  "type" : "git",
+  "url" : "https://github.com/dwaithe/soundtovision-renderapp.git"
+}
+  }
+}

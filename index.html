@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+    
+    <title>Sound to Vision - Render App</title>
+<style type="text/css">
+  
+  #notification {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  width: 200px;
+  padding: 20px;
+  border-radius: 5px;
+  background-color: white;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+}
+.hidden {
+  display: none;
+}
+</style>
+ 
+     
+
+  </head>
+  <body style="box-sizing: border-box;
+      margin: 0;
+      padding: 20px;
+      font-family: sans-serif;
+      background-color: #eaeaea;
+      text-align: center;;background-image:url('assets/banner.png'); background-repeat: no-repeat;">
+    <div id="banner"></div>
+    <h1 style="color: #FFFFFF;">Render App</h1> <p id="version"  style="color: #FFFFFF;width: 720px;text-align:left;"></p>
+    <p style="color: #FFFFFF;width: 720px;text-align:right;" id="status"></p>
+    <p style="color: #FFFFFF;width: 720px;text-align:right;" id="messages"></p>
+  
+    <div id="notification" class="hidden">
+      <p id="message"></p>
+      <button id="close-button" onClick="closeNotification()">
+        Close
+      </button>
+      <button id="restart-button" onClick="restartApp()" class="hidden">
+        Restart
+      </button>
+    </div>
+
+
+    <script src="socket.io.min.js"></script>
+    <script>
+
+      const { ipcRenderer } = require('electron');
+    const version = document.getElementById('version');
+    
+    ipcRenderer.send('app_version');
+    ipcRenderer.on('app_version', (event, arg) => {
+        ipcRenderer.removeAllListeners('app_version');
+        version.innerText = 'Version ' + arg.version;
+    });
+    const notification = document.getElementById('notification');
+    const message = document.getElementById('message');
+    const restartButton = document.getElementById('restart-button');
+    ipcRenderer.on('update_available', () => {
+      ipcRenderer.removeAllListeners('update_available');
+      message.innerText = 'A new update is available. Downloading now...';
+      notification.classList.remove('hidden');
+    });
+    ipcRenderer.on('update_downloaded', () => {
+      ipcRenderer.removeAllListeners('update_downloaded');
+      message.innerText = 'Update Downloaded. It will be installed on restart. Restart now?';
+      restartButton.classList.remove('hidden');
+      notification.classList.remove('hidden');
+    });
+
+    function closeNotification() {
+      notification.classList.add('hidden');
+    }
+    function restartApp() {
+      ipcRenderer.send('restart_app');
+    }
+
+      const status = document.getElementById("status");
+      const messages = document.getElementById("messages");
+
+      const appendMessage = (content) => {
+        const item = document.createElement("li");
+        item.textContent = content;
+        while (messages.firstChild) {
+        messages.removeChild(messages.lastChild);
+      }
+        messages.appendChild(item);
+      };
+
+      const socket = io("ws://localhost:3000");
+
+      socket.on("connect", () => {
+        status.innerText = "Connected";
+        appendMessage(`event: connect | session id: ${socket.id}`);
+
+
+      });
+
+      socket.on("connect_error", (err) => {
+        appendMessage(`event: connect_error | reason: ${err.message}`);
+      });
+
+      socket.on("disconnect", (reason) => {
+        status.innerText = "Disconnected";
+        appendMessage(`event: disconnect | reason: ${reason}`);
+      });
+
+      socket.onAny((event, ...args) => {
+        appendMessage(`event: ${event} | arguments: ${args}`);
+
+
+      });
+      document.getElementById('butt_btn').addEventListener('click',function(){
+         socket.emit("wack","true baby")
+       console.log('helloe')
+})
+    </script>
+  </body>
+</html>
