@@ -1,13 +1,18 @@
 {
   "name": "renderapp",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "App which does rendering for Sound to Vision",
   "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "electron .",
     "app:dir": "electron-builder --dir",
-    "app:dist": "electron-builder -mwl --publish always"
+    "app:dist": "GH_TOKEN=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 electron-builder -mw  --publish always"
+  },
+
+    "repository": {
+    "type" : "git",
+    "url" : "https://github.com/dwaithe/soundtovision-renderapp.git"
   },
   "author": "Dominic Waithe",
   "license": "MIT",
@@ -65,10 +70,6 @@
           "**/*"
         ]
       }
-    ],
-    "repository": {
-  "type" : "git",
-  "url" : "https://github.com/dwaithe/soundtovision-renderapp.git"
-}
+    ]
   }
 }
