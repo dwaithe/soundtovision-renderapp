@@ -1,19 +1,26 @@
 {
-  "name": "renderapp",
-  "version": "0.0.2",
+  "name": "SToV-RenderApp",
+  "version": "0.0.5",
   "description": "App which does rendering for Sound to Vision",
   "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "electron .",
     "app:dir": "electron-builder --dir",
-    "app:dist": "GH_TOKEN=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 electron-builder -mw  --publish always"
+    "app:dist": "GH_TOKEN=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 electron-builder -mw --publish always"
   },
-
-    "repository": {
-    "type" : "git",
-    "url" : "https://github.com/dwaithe/soundtovision-renderapp.git"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dwaithe/soundtovision-renderapp.git"
   },
+  "publish": [
+    {
+      "provider": "github",
+      "releaseType": "release",
+      "private": true,
+      "token": "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"
+    }
+  ],
   "author": "Dominic Waithe",
   "license": "MIT",
   "devDependencies": {
@@ -24,18 +31,23 @@
     "app-root-dir": "^1.0.2",
     "electron-updater": "^5.2.1",
     "express": "^4.18.1",
+    "fetch": "^1.1.0",
+    "ffmpeg-extract-frames": "^2.0.2",
     "fluent-ffmpeg": "^2.1.2",
+    "node-fetch": "^2.6.9",
     "socket.io": "^4.5.1",
+    "socket.io-stream": "^0.9.1",
+    "xhr2": "^0.2.1",
     "yarn": "^1.22.19"
   },
   "build": {
-    "appId": "soundtovision.renderapp",
+    "appId": "SToV-RenderApp",
     "mac": {
       "category": "public.app-category.video",
       "extendInfo": {
         "CFBundleURLTypes": [
           {
-            "CFBundleURLName": "soundtovision.renderapp",
+            "CFBundleURLName": "SToV-RenderApp",
             "CFBundleURLSchemes": [
               "soundtovision"
             ]
@@ -57,7 +69,7 @@
       "icon": "build/icon.ico"
     },
     "protocols": {
-      "name": "soundtovision-renderapp",
+      "name": "SToV-RenderApp",
       "schemes": [
         "soundtovision"
       ]
