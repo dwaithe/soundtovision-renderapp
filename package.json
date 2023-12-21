@@ -1,13 +1,14 @@
 {
   "name": "SToV-RenderApp",
-  "version": "0.0.5",
+  "version": "0.0.7",
   "description": "App which does rendering for Sound to Vision",
   "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "electron .",
     "app:dir": "electron-builder --dir",
-    "app:dist": "GH_TOKEN=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 electron-builder -mw --publish always"
+    "app:mac": "electron-builder -m",
+    "app:dist": "GH_TOKEN=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 electron-builder -mw --publish always"
   },
   "repository": {
     "type": "git",
@@ -18,17 +19,19 @@
       "provider": "github",
       "releaseType": "release",
       "private": true,
-      "token": "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"
+      "token": "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"
     }
   ],
   "author": "Dominic Waithe",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^20.2.0",
-    "electron-builder": "^23.3.3"
+    "@electron/rebuild": "^3.3.0",
+    "electron": "^25.2.0",
+    "electron-builder": "^23.3.3",
+    "electron-rebuild": "^3.2.9"
   },
   "dependencies": {
-    "app-root-dir": "^1.0.2",
+    "electron-log": "^4.4.8",
     "electron-updater": "^5.2.1",
     "express": "^4.18.1",
     "fetch": "^1.1.0",
@@ -42,6 +45,7 @@
   },
   "build": {
     "appId": "SToV-RenderApp",
+    "asar": true,
     "mac": {
       "category": "public.app-category.video",
       "extendInfo": {
@@ -54,6 +58,24 @@
           }
         ]
       },
+      
+
+      "extraFiles": [
+      {
+        "from": "../ffmpeg/${os}",
+        "to": "Resources/bin",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "/Users/dominicwaithe/Desktop/node_test/dist/dist/${os}",
+        "to": "Resources/bin",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
       "icon": "build/icon.png"
     },
     "win": {
@@ -73,15 +95,7 @@
       "schemes": [
         "soundtovision"
       ]
-    },
-    "extraFiles": [
-      {
-        "from": "resources/${os}",
-        "to": "Resources/bin",
-        "filter": [
-          "**/*"
-        ]
-      }
-    ]
+    }
+    
   }
 }

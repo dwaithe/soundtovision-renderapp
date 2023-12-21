@@ -1,12 +1,26 @@
+const util = require("node:util");
+const execFile = util.promisify(require("node:child_process").execFile);
+
+
+
+
+const log = require('electron-log')
+
+console.log = log.log;
+
+
+const path = require('path');
 const {app, BrowserWindow, ipcMain} = require('electron')
 const bf = require('buffer')
 
+
+//let pixi = import('./pixi_interact.mjs');
+
 // include the Node.js 'path' module at the top of your file
-const path = require('path')
+var httpServer = require('http');
 var fs = require('fs');
 var ffmpeg = require('fluent-ffmpeg');
 // Setting ffmpeg path to ffmpeg binary for os x so that ffmpeg can be packaged with the app.
-var appRootDir = require('app-root-dir').get();
 const os = require('os');
 const { autoUpdater } = require('electron-updater');
 var ss = require('socket.io-stream');
@@ -35,9 +49,12 @@ if (platform == 'mac'){
 
 if(__dirname.substring(__dirname.lastIndexOf('/')) == '/app.asar'){
   var execPath = path.join(__dirname.substring(0, __dirname.lastIndexOf('/')), 'bin','ffmpeg' );
+  var nodePath = path.join(__dirname.substring(0, __dirname.lastIndexOf('/')), 'bin','node_render' );
 }else{
   var execPath = path.join(__dirname, 'resources',platform,'ffmpeg' );
+  var nodePath = path.join(__dirname, 'resources',platform,'node_render' );
 }}
+
 
 if (platform == 'win'){
 
@@ -47,41 +64,29 @@ if(__dirname.substring(__dirname.lastIndexOf('\\')) == '\\app.asar'){
   var execPath = path.join(__dirname, 'resources',platform,'ffmpeg' );
 }}
 
+//ffmpeg.setFfmpegPath(execPath)
+console.log('__dirname',__dirname)
 
-
-console.log('execPath',execPath)
-ffmpeg.setFfmpegPath(execPath)
 
 var pattern = new Buffer.from([0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A])
-console.log('pattern',pattern)
 
 http = require("http");
 soc  = require("socket.io");
 
-const httpServer = http.createServer((req, res) => {
-  if (req.url !== "/") {
-    res.writeHead(404);
-    res.end("Not found");
-    return;
-  }
-  // reload the file every time
-  const content = fs.readFileSync("index.html");
-  const length = Buffer.byteLength(content);
-
-  res.writeHead(200, {
-    "Content-Type": "text/html",
-    "Content-Length": length,
-  });
-  res.end(content);
+const server = http.createServer((req, res) => {
+  res.statusCode = 200;
+  res.setHeader('Content-Type', 'text/plain');
+  res.end('Hello, World!\n');
 });
 
-const io = new soc.Server(httpServer, {
+const io = new soc.Server(server, {
   // Socket.IO optionshttpServer, {
   cors: {
     origin: ["http://localhost:9080","https://soundtovision.com","https://www.soundtovision.com"],
     methods: ["GET", "POST"],
     maxHttpBufferSize: 1e14
   },
+
   maxHttpBufferSize: 1e14,
   pingInterval: 2000, 
   pingTimeout: 500000
@@ -91,19 +96,25 @@ io.on("connection", (socket) => {
     var downpath = os.homedir()+'/Downloads/'
     var stream = require("stream")
     var pt
-    function photo_stack(start, end, stimes){
+    function rtn_render_frames(start, end, stimes, vid_num){
 
         pt = stream.PassThrough()
         var downpath = os.homedir()+'/Downloads/stuff'
-        var inputPath = path.join(app.getPath("temp"),'video.mp4')
+        var inputPath = path.join(app.getPath("temp"),'video'+vid_num+'.mp4')
 
         ffmpeg()
         .input(inputPath)
         .ffprobe(0, function(err, data) {
           
-          var frame_rate = parseInt(data.streams[0].r_frame_rate)
-          var select_str = "select='"
-          
+          for (var i = 0; i < data.streams.length; i++) {
+            if(data.streams[i].codec_type == 'video'){
+
+              frame_parts = data.streams[i].r_frame_rate.split('/')
+              var frame_rate = parseInt(frame_parts[0])/parseInt(frame_parts[1])
+            }
+          }
+
+          var select_str = "select='"    
           for (var i = 0; i < stimes.length; i++) {
             select_str += "eq(n,"+(Math.floor(stimes[i]*frame_rate))+")"
             if(i<stimes.length-1){
@@ -129,7 +140,7 @@ io.on("connection", (socket) => {
                   file.push(d)
                  }else{ 
                   //Else wi
-                  socket.emit('send_back_image', {'data':Buffer.concat(file),'num':count})
+                  socket.emit('send_back_rend_img', {'data':Buffer.concat(file),'num':count})
                    win.webContents.send('progress',100*count/stimes.length)
                   file = [];
                   file.push(d)
@@ -137,7 +148,7 @@ io.on("connection", (socket) => {
                 }
               }else{
                 file.push(d.slice(0,found))
-                socket.emit('send_back_image', {'data':Buffer.concat(file),'num':count})
+                socket.emit('send_back_rend_img', {'data':Buffer.concat(file),'num':count})
                  win.webContents.send('progress',100*count/stimes.length)
                 file = [];
                 file.push(d.slice(found))
@@ -153,6 +164,7 @@ io.on("connection", (socket) => {
             .fromFormat('mp4')
             .outputOptions([
               "-vsync 0",
+              "-v:q 1",
               "-vcodec png",
               "-f image2pipe",
               "-pix_fmt yuv420p"
@@ -160,10 +172,93 @@ io.on("connection", (socket) => {
 
           command.on('end', () => {
 
-            socket.emit('send_back_last_image', {'data':Buffer.concat(file),'num':count})
+            socket.emit('send_back_last_rend_img', {'data': Buffer.concat(file),'num':count})
             win.webContents.send('progress',100)
               
           }).output(pt, { end: true }).run();
+        });
+
+    }
+    function photo_stack(start, end, stimes){
+
+        pt = stream.PassThrough()
+        var downpath = os.homedir()+'/Downloads/stuff'
+        var inputPath = path.join(app.getPath("temp"),'video.mp4')
+
+        ffmpeg()
+        .input(inputPath)
+        .ffprobe(0, function(err, data) {
+          
+              for (var i = 0; i < data.streams.length; i++) {
+                if(data.streams[i].codec_type == 'video'){
+
+                  frame_parts = data.streams[i].r_frame_rate.split('/')
+                  var frame_rate = parseInt(frame_parts[0])/parseInt(frame_parts[1])
+                }
+              }
+
+              var select_str = "select='"    
+              for (var i = 0; i < stimes.length; i++) {
+                select_str += "eq(n,"+(Math.floor(stimes[i]*frame_rate))+")"
+                if(i<stimes.length-1){
+                  select_str += "+"
+                }
+              }
+              select_str += "'"
+              count = 0
+              
+              var file = new Array();
+              pt.on('data', function (d,t) {
+
+                found = d.indexOf(pattern)
+                if(found == -1){
+                  //No start sequence found, just add on.
+                  file.push(d)
+
+                }else{
+                  if(found == 0){
+                    //if position is zero.
+                    if(file.length == 0){
+                      //If this is the first file of the session.
+                      file.push(d)
+                     }else{ 
+                      //Else wi
+                      socket.emit('send_back_image', {'data':Buffer.concat(file),'num':count})
+                       win.webContents.send('progress',100*count/stimes.length)
+                      file = [];
+                      file.push(d)
+                      count +=1
+                    }
+                  }else{
+                    file.push(d.slice(0,found))
+                    socket.emit('send_back_image', {'data':Buffer.concat(file),'num':count})
+                     win.webContents.send('progress',100*count/stimes.length)
+                    file = [];
+                    file.push(d.slice(found))
+                    count +=1
+                  }
+              }})
+
+              const command = ffmpeg()
+                .input(inputPath)
+                .inputFPS(frame_rate)
+                .complexFilter(select_str)
+                .noAudio() // Disable audio output
+                .fromFormat('mp4')
+                .outputOptions([
+                  "-vsync 0",
+                  "-v:q 1",
+                  "-vcodec png",
+                  "-f image2pipe",
+                  "-pix_fmt yuv420p"
+                 ])
+
+              command.on('end', () => {
+
+                socket.emit('send_back_last_image', {'data': Buffer.concat(file),'num':count})
+                win.webContents.send('progress',100)
+                  
+              }).output(pt, { end: true }).run();
         });
 
     }
@@ -177,21 +272,35 @@ io.on("connection", (socket) => {
 
         ffmpeg()
         .input(inputPath)
+        .inputOptions(["-select_streams v:0"])
         .ffprobe(0, function(err, data) {
+          console.log(data)
+
+          for (var i = 0; i < data.streams.length; i++) {
+            if(data.streams[i].codec_type == 'video'){
+
+              frame_parts = data.streams[i].r_frame_rate.split('/')
+              var frame_rate = parseInt(frame_parts[0])/parseInt(frame_parts[1])
+            }
+          }
           
-          var frame_rate = parseInt(data.streams[0].r_frame_rate)
+          
           var select_str = "select='"
           var prev_st = -1
           var count_r = [1]
           var scount = -1
+          
           console.log('stimes',stimes)
           for (var i = 0; i < stimes.length; i++) {
 
             var frame_num = Math.floor(stimes[i]*frame_rate)
-            console.log('frame_num',frame_num)
+            
             if(frame_num == prev_st){
               count_r[scount] += 1
               continue
+            }
+            if(i!=0){
+              select_str += "+"
             }
 
             prev_st = frame_num
@@ -199,14 +308,12 @@ io.on("connection", (socket) => {
             scount += 1
 
             select_str += "eq(n,"+(frame_num)+")"
-            if(i<stimes.length-1){
-              select_str += "+"
-            }
+            
 
           }
           select_str += "'"
 
-          console.log('select_str',select_str,count_r)
+          console.log('select_str',select_str)
           count = 0
           
           var file = new Array();
@@ -442,9 +549,9 @@ io.on("connection", (socket) => {
     ss(socket).on('write_file', function(stream, data) {
       var filename = path.join(app.getPath("temp"),'video.mp4');
       stream.pipe(fs.createWriteStream(filename));
-
-      //tryit(filename)
       });
+
+    
     socket.on('photostack_ffmpeg',function(param){
       
       
@@ -488,7 +595,6 @@ io.on("connection", (socket) => {
         
     })
   })
-httpServer.listen(3000);
 
 
 
@@ -504,22 +610,49 @@ const createWindow = () => {
   })
 
 
+const { spawn } = require("node:child_process");
+var cat = spawn(path.join(__dirname, '../bin','node_render' ));
+console.log('PID',cat.pid)
+var PID = cat.pid
+process.on("uncaughtException", function(){ process.kill(PID)});
+process.on("SIGINT", function(){ process.kill(PID)});
+process.on("SIGTERM", function(){ process.kill(PID)});
+process.on('exit',function(){ process.kill(PID)})
+process.on('SIGUSR1', function(){ process.kill(PID)})
+process.on('SIGUSR2', function(){ process.kill(PID)})
 
-  win.loadFile('index.html')
-  win.once('ready-to-show', () => {
-     win.webContents.send('progress',0)
-  autoUpdater.checkForUpdatesAndNotify();
-  autoUpdater.on('update-available', () => {
+cat.on("error", (error) => {
+  
+  console.error(`error: ${error.message}`);
+});
+//cat.on("close", (error) => {
+  
+//  console.error(`close: ${error.message}`);
+//});
+//cat.on("exit", (error) => {
+  
+//  console.error(`exit: ${error.message}`);
+//});
+cat.stdout.pipe(process.stdout);
+cat.stderr.pipe(process.stderr);
+
+win.loadFile('index.html')
+win.once('ready-to-show', () => {
+win.webContents.send('startme',path.join(__dirname, '../bin','node_render' ))
+win.webContents.send('progress',0)
+autoUpdater.checkForUpdatesAndNotify();
+autoUpdater.on('update-available', () => {
   win.webContents.send('update_available');
 });
 autoUpdater.on('update-downloaded', () => {
   win.webContents.send('update_downloaded');
 });
 });
- 
+         
 }
 
 app.on('window-all-closed', () => {
+  console.log('closing')
   app.quit()
 })
 

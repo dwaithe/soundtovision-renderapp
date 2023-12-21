@@ -64,6 +64,8 @@ progress { color: white; }
       
        document.getElementById('progress').value = progress
     });
+
+    ipcRenderer.on('startme', (event, arg)=>{console.log(event, arg)})
     
     ipcRenderer.send('app_version');
     ipcRenderer.on('app_version', (event, arg) => {
